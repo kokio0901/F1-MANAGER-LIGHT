@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>F1 Manager Light - Large Circular Speedway</title>
+    <style>
+        body { background-color: #0b0b12; color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 95vh; user-select: none; }
+        #header-bar { display: flex; justify-content: space-between; align-items: center; background: #161622; padding: 12px 24px; border-radius: 8px; border-bottom: 4px solid #e10600; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        #main-container { display: flex; flex: 1; gap: 15px; min-height: 600px; }
+        
+        .panel { background-color: #161622; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid #252538; }
+        
+        #strategy-panel { flex: 1.2; min-width: 380px; gap: 10px; }
+        .driver-card { background: #222235; padding: 12px; border-radius: 6px; border-left: 5px solid #fff; margin-bottom: 5px; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; }
+        .badge.S { background: #ef4444; color: #fff; }
+        .badge.M { background: #eab308; color: #000; }
+        .badge.H { background: #ffffff; color: #000; }
+        
+        .btn-group { display: flex; gap: 4px; margin-top: 8px; }
+        .strat-btn { flex: 1; background: #33334d; border: none; color: white; padding: 6px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .strat-btn.active { background: #e10600; }
+        .tyre-btn { flex: 1; background: #2d2d44; border: none; color: #aaa; padding: 6px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .tyre-btn.active { background: #22c55e; color: white; }
+        
+        .gauge-container { font-size: 11px; margin-top: 6px; color: #aaa; display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .gauge-bar { background: #0b0b12; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+        .gauge-fill { height: 100%; }
+        
+        .pit-box-btn { width: 100%; background: #ff9900; color: #000; font-weight: bold; padding: 8px; border: none; border-radius: 4px; cursor: pointer; margin-top: 6px; font-size: 12px; }
+        .pit-box-btn.requested { background: #ef4444; color: white; }
+
+        #radio-panel { background: #1f1f30; border: 1px solid #3a3a56; border-radius: 6px; padding: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 90px; }
+        .radio-msg { font-size: 12px; color: #ffbc00; font-family: monospace; }
+        .radio-actions { display: flex; gap: 6px; }
+        .radio-btn { flex: 1; padding: 6px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .radio-confirm { background: #22c55e; color: white; }
+        .radio-reject { background: #ef4444; color: white; }
+
+        #leaderboard-panel { flex: 1; font-family: monospace; min-width: 340px; }
+        .leaderboard-table { width: 100%; border-collapse: collapse; }
+        .leaderboard-table th { background: #0b0b12; padding: 8px; text-align: left; font-size: 11px; color: #8a8a9d; }
+        .leaderboard-table td { padding: 6px 8px; border-bottom: 1px solid #252538; font-size: 12px; }
+        .pos { font-weight: bold; width: 22px; }
+        .team-badge { width: 4px; padding: 0 !important; }
+        .interval { text-align: right; color: #ffbc00; font-weight: bold; }
+
+        #circuit-panel { flex: 1.8; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #09090f; min-width: 450px; }
+        #track-svg { width: 100%; height: 100%; max-height: 480px; }
+        .track-line { fill: none; stroke: #2d2d44; stroke-width: 16; stroke-linecap: round; }
+        .pit-lane-line { fill: none; stroke: #ff9900; stroke-width: 4; stroke-opacity: 0.4; }
+        .sf-line { stroke: #ffffff; stroke-width: 4; stroke-dasharray: 2,2; }
+        .car-dot { r: 6.5; stroke: #ffffff; stroke-width: 1.2; }
+        .car-label { font-size: 8px; font-weight: bold; fill: #ffffff; text-anchor: middle; dominant-baseline: central; }
+        .drs-text { font-size: 8px; fill: #00ff66; font-weight: bold; display: none; }
+
+        #lights-container { display: flex; gap: 10px; margin-bottom: 15px; background: #000; padding: 10px 20px; border-radius: 6px; border: 2px solid #333; }
+        .light-unit { display: flex; flex-direction: column; gap: 4px; }
+        .light-bulb { width: 20px; height: 20px; background: #222; border-radius: 50%; border: 1px solid #444; }
+        .light-bulb.red { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+
+        #commentary-section { height: 90px; background-color: #050508; border: 1px solid #252538; margin-top: 15px; padding: 12px; overflow-y: auto; font-size: 12px; color: #00ff66; font-family: 'Courier New', monospace; border-radius: 6px; }
+
+        #modal-overlay { position: fixed; inset: 0; background: rgba(5,5,8,0.95); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: #161622; padding: 25px; border-radius: 12px; max-width: 650px; width: 90%; text-align: center; border: 1px solid #3a3a56; }
+        .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .team-btn { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; text-align: left; padding-left: 15px; font-size: 13px; }
+        #results-box { text-align: left; max-height: 320px; overflow-y: auto; background: #0b0b12; padding: 12px; margin: 15px 0; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.6; }
+        
+        .action-btn { background: #e10600; color: white; border: none; padding: 12px 24px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .reset-btn { background: #33334d; color: #ffbc00; border: 1px solid #ffbc00; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+
+        #tyre-select-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 200; }
+        .tyre-select-content { background: #1f1f30; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #ff9900; width: 360px; }
+        .tyre-opt-btn { width: 100%; padding: 10px; margin: 6px 0; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+
+        .driver-tyre-row { background: #1f1f30; padding: 12px; border-radius: 6px; border: 1px solid #3a3a56; margin-bottom: 10px; }
+        .tyre-choice-group { display: flex; gap: 8px; margin-top: 8px; }
+        .choice-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; opacity: 0.4; color: #000; }
+        .choice-btn.active { opacity: 1; border: 2px solid #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="header-bar">
+        <div style="font-size: 18px; font-weight: bold; color: #e10600; letter-spacing: 1px;">F1 Manager Light</div>
+        <div style="font-size: 16px; font-weight: bold;" id="lap-counter">LAP -- / 30</div>
+        <button class="reset-btn" onclick="initGame()">RESET TO MAIN</button>
+    </div>
+
+    <div id="main-container">
+        <div class="panel" id="strategy-panel">
+            <h3 style="margin-top:0; border-bottom: 1px solid #252538; padding-bottom: 6px;">STRATEGY ROOM</h3>
+            <div id="my-drivers-container" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1;"></div>
+            
+            <div id="radio-panel">
+                <div style="font-size: 11px; color: #8a8a9d; font-weight: bold;">TEAM RADIO</div>
+                <div id="radio-msg-box" class="radio-msg">No active messages</div>
+                <div class="radio-actions" id="radio-actions-box" style="display: none;">
+                    <button class="radio-btn radio-confirm" onclick="handleRadio(true)">APPROVE</button>
+                    <button class="radio-btn radio-reject" onclick="handleRadio(false)">REJECT</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="leaderboard-panel">
+            <h3 style="margin-top:0; border-bottom: 1px solid #252538; padding-bottom: 6px;">LIVE STANDINGS</h3>
+            <div style="flex: 1; overflow-y: auto;">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th class="pos">POS</th>
+                            <th class="team-badge"></th>
+                            <th>DRIVER</th>
+                            <th style="text-align:right;">INTERVAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel" id="circuit-panel">
+            <div id="lights-container" style="display: none;">
+                <div class="light-unit"><div class="light-bulb" id="l-0-0"></div><div class="light-bulb" id="l-0-1"></div></div>
+                <div class="light-unit"><div class="light-bulb" id="l-1-0"></div><div class="light-bulb" id="l-1-1"></div></div>
+                <div class="light-unit"><div class="light-bulb" id="l-2-0"></div><div class="light-bulb" id="l-2-1"></div></div>
+                <div class="light-unit"><div class="light-bulb" id="l-3-0"></div><div class="light-bulb" id="l-3-1"></div></div>
+                <div class="light-unit"><div class="light-bulb" id="l-4-0"></div><div class="light-bulb" id="l-4-1"></div></div>
+            </div>
+            
+            <button class="action-btn" id="manual-start-btn" style="display: none; width: auto; padding: 10px 40px; margin-bottom: 15px;">START RACE</button>
+
+            <svg id="track-svg" viewBox="0 0 600 500">
+                <path id="main-track" class="track-line" d="M 300 470 A 220 220 0 1 1 300.1 470 Z" />
+                
+                <path id="pit-track" class="pit-lane-line" d="M 300 452 A 202 202 0 0 1 299.9 452" />
+                
+                <line x1="300" y1="458" x2="300" y2="482" class="sf-line" />
+                <g id="cars-layer"></g>
+            </svg>
+        </div>
+    </div>
+
+    <div id="commentary-section"></div>
+
+    <div id="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-title">SELECT F1 TEAM</h2>
+            <p id="modal-desc" style="color: #aaa; font-size: 13px;">2025 Season Grid</p>
+            <div class="team-grid" id="team-grid-box"></div>
+            <div id="results-box" style="display:none;"></div>
+            <div id="start-tyre-box" style="display:none;"></div>
+            <button class="action-btn" id="modal-action-btn" style="display:none;"></button>
+        </div>
+    </div>
+
+    <div id="tyre-select-overlay">
+        <div class="tyre-select-content">
+            <h3 style="color:#ff9900; margin-top:0;">PIT STOP</h3>
+            <button class="tyre-opt-btn" style="background:#ef4444; color:#fff;" onclick="selectTyre('S')">SOFT</button>
+            <button class="tyre-opt-btn" style="background:#eab308; color:#000;" onclick="selectTyre('M')">MEDIUM</button>
+            <button class="tyre-opt-btn" style="background:#ffffff; color:#000;" onclick="selectTyre('H')">HARD</button>
+        </div>
+    </div>
+
+    <script>
+        const teamDatabase = {
+            "Red Bull": { color: "#061d43", drivers: [{id: "VER", name: "M. Verstappen", skill: 1.00}, {id: "PER", name: "S. Perez", skill: 0.68}] },
+            "McLaren": { color: "#ff8700", drivers: [{id: "NOR", name: "L. Norris", skill: 0.97}, {id: "PIA", name: "O. Piastri", skill: 0.91}] },
+            "Ferrari": { color: "#e10600", drivers: [{id: "LEC", name: "C. Leclerc", skill: 0.95}, {id: "HAM", name: "L. Hamilton", skill: 0.93}] },
+            "Mercedes": { color: "#00a19c", drivers: [{id: "RUS", name: "G. Russell", skill: 0.84}, {id: "ANT", name: "K. Antonelli", skill: 0.58}] },
+            "Aston Martin": { color: "#006f62", drivers: [{id: "ALO", name: "F. Alonso", skill: 0.79}, {id: "STR", name: "L. Stroll", skill: 0.42}] },
+            "Williams": { color: "#005aff", drivers: [{id: "SAI", name: "C. Sainz", skill: 0.81}, {id: "ALB", name: "A. Albon", skill: 0.54}] },
+            "RB": { color: "#6699ff", drivers: [{id: "TSU", name: "Y. Tsunoda", skill: 0.49}, {id: "HAD", name: "I. Hadjar", skill: 0.32}] },
+            "Haas": { color: "#ffffff", drivers: [{id: "OCO", name: "E. Ocon", skill: 0.47}, {id: "BEA", name: "O. Bearman", skill: 0.38}] },
+            "Alpine": { color: "#0090ff", drivers: [{id: "GAS", name: "P. Gasly", skill: 0.41}, {id: "DOO", name: "J. Doohan", skill: 0.28}] },
+            "Kick Sauber": { color: "#52e252", drivers: [{id: "HUL", name: "N. Hulkenberg", skill: 0.36}, {id: "BOR", name: "G. Bortoleto", skill: 0.22}] }
+        };
+
+        const tyreSpecs = {
+            'S': { speedBonus: 2.8, wearRate: 7.8 },
+            'M': { speedBonus: 1.4, wearRate: 3.9 },
+            'H': { speedBonus: 0.0, wearRate: 1.8 }
+        };
+
+        let playerTeam = "";
+        let drivers = [];
+        let currentLap = 1;
+        const totalLaps = 30;
+        let isLive = false;
+        let loopInterval = null;
+        
+        let mainTrackPath, pitTrackPath;
+        let mainTrackLen = 0, pitTrackLen = 0;
+        
+        let visualPositions = []; 
+        let pendingPositions = []; 
+        
+        let lastLeaderboardUpdateTime = 0;
+        let raceStartTime = 0;
+
+        let activePittingDriver = null;
+        let activeRadioDriver = null;
+
+        const gameSpeed = 1.0; 
+        const baseLapTime = 30.0;
+
+        let selectedStartTyres = {};
+
+        function checkStraightZone(p) { return true; }
+        function checkCornerZone(p) { return false; }
+
+        function initGame() {
+            drivers = [];
+            currentLap = 1;
+            isLive = false;
+            activeRadioDriver = null;
+            visualPositions = [];
+            pendingPositions = [];
+            selectedStartTyres = {};
+            lastLeaderboardUpdateTime = 0;
+            raceStartTime = 0;
+            if(loopInterval) clearInterval(loopInterval);
+            
+            document.getElementById('cars-layer').innerHTML = "";
+            document.getElementById('commentary-section').innerHTML = "";
+            document.getElementById('lap-counter').innerText = "LAP -- / 30";
+            document.getElementById('lights-container').style.display = 'none';
+            document.getElementById('manual-start-btn').style.display = 'none';
+            document.getElementById('radio-msg-box').innerText = "No active messages";
+            document.getElementById('radio-actions-box').style.display = "none";
+            
+            document.getElementById('results-box').style.display = 'none';
+            document.getElementById('start-tyre-box').style.display = 'none';
+            document.getElementById('modal-action-btn').style.display = 'none';
+            
+            const gridBox = document.getElementById('team-grid-box');
+            gridBox.innerHTML = "";
+            gridBox.style.display = 'grid';
+            
+            document.getElementById('modal-title').innerText = "SELECT F1 TEAM";
+            document.getElementById('modal-desc').innerText = "2025 Season Grid";
+            document.getElementById('modal-overlay').style.display = 'flex';
+
+            for (const team in teamDatabase) {
+                const btn = document.createElement('button');
+                btn.className = 'team-btn';
+                btn.style.backgroundColor = teamDatabase[team].color;
+                if(team === "Haas") btn.style.color = "#000";
+                btn.innerText = team;
+                btn.onclick = () => selectTeam(team);
+                gridBox.appendChild(btn);
+            }
+        }
+
+        function selectTeam(team) {
+            playerTeam = team;
+            drivers = [];
+            
+            for (const [tName, info] of Object.entries(teamDatabase)) {
+                info.drivers.forEach(d => {
+                    drivers.push({
+                        id: d.id, name: d.name, team: tName, color: info.color, skill: d.skill,
+                        progress: 0.0, tyreWear: 100.0, tyreType: 'M', paceMode: 'Normal', tyreStyle: 'n',
+                        battery: 100.0, totalTime: 0.0, status: 'Track', pitTimer: 0, pitRequest: false,
+                        radioTriggered: false, isPlayer: tName === playerTeam,
+                        hasDrs: false, hasSlipstream: false, qualiTime: 0, gridIndex: 0
+                    });
+                });
+            }
+
+            mainTrackPath = document.getElementById('main-track');
+            pitTrackPath = document.getElementById('pit-track');
+            mainTrackLen = mainTrackPath.getTotalLength();
+            pitTrackLen = pitTrackPath.getTotalLength();
+
+            runQualifyingSimulation();
+        }
+
+        function runQualifyingSimulation() {
+            drivers.forEach(d => {
+                let baseQuali = 70.0; 
+                let skillImpact = (1.0 - d.skill) * 12.0; 
+                let randomness = Math.random() * 0.3; 
+                d.qualiTime = baseQuali + skillImpact + randomness;
+            });
+
+            drivers.sort((a, b) => a.qualiTime - b.qualiTime);
+
+            // 트랙이 커졌으므로 1열 종대 간격을 명확하게 감상할 수 있도록 세팅
+            drivers.forEach((d, idx) => {
+                d.gridIndex = idx;
+                let circularStartLine = 1.0; 
+                let singleLineGap = idx * 0.0016; 
+                d.progress = circularStartLine - singleLineGap;
+            });
+
+            visualPositions = drivers.map(r => r.id);
+            pendingPositions = [...visualPositions];
+
+            initCircuitGraphics();
+            updateCarPositionsOnTrack(); 
+
+            document.getElementById('team-grid-box').style.display = 'none';
+            document.getElementById('modal-title').innerText = "QUALIFYING RESULTS";
+            document.getElementById('modal-desc').innerText = "Circular Speedway Grid Formed";
+            
+            const resBox = document.getElementById('results-box');
+            resBox.innerHTML = "";
+            resBox.style.display = 'block'; 
+
+            drivers.forEach((d, idx) => {
+                let formatTime = "";
+                if(idx === 0) {
+                    let mins = Math.floor(d.qualiTime / 60);
+                    let secs = (d.qualiTime % 60).toFixed(3);
+                    formatTime = `${mins}:${secs.padStart(6, '0')}`;
+                } else {
+                    let gap = d.qualiTime - drivers[0].qualiTime;
+                    formatTime = `+${gap.toFixed(3)}s`;
+                }
+
+                let playerHighlight = d.isPlayer ? "color: #ff9900; font-weight: bold;" : "";
+                resBox.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f1f30; padding: 4px 0; ${playerHighlight}">
+                        <span><b>P${(idx+1).toString().padStart(2, '0')}</b> [${d.id}] ${d.name}</span>
+                        <span>${formatTime}</span>
+                    </div>
+                `;
+            });
+
+            const actionBtn = document.getElementById('modal-action-btn');
+            actionBtn.innerText = "CHOOSE STARTING TYRES";
+            actionBtn.style.display = 'block'; 
+            actionBtn.onclick = () => openStartingTyreScreen();
+        }
+
+        function openStartingTyreScreen() {
+            document.getElementById('results-box').style.display = 'none';
+            document.getElementById('modal-title').innerText = "SET STARTING TYRES";
+            document.getElementById('modal-desc').innerText = "선택한 드라이버의 오프닝 컴파운드를 확정하세요.";
+            
+            const tyreBox = document.getElementById('start-tyre-box');
+            tyreBox.innerHTML = "";
+            tyreBox.style.display = 'block';
+
+            let pDrivers = drivers.filter(d => d.isPlayer);
+            pDrivers.forEach(d => {
+                selectedStartTyres[d.id] = 'M'; 
+                
+                let row = document.createElement('div');
+                row.className = 'driver-tyre-row';
+                row.innerHTML = `
+                    <div style="font-weight:bold; color:#ff9900; text-align: left;">[${d.id}] ${d.name}</div>
+                    <div class="tyre-choice-group">
+                        <button class="choice-btn" id="choice-S-${d.id}" style="background:#ef4444; color:#fff;" onclick="setStartTyreCombo('${d.id}', 'S')">SOFT</button>
+                        <button class="choice-btn active" id="choice-M-${d.id}" style="background:#eab308; color:#000;" onclick="setStartTyreCombo('${d.id}', 'M')">MEDIUM</button>
+                        <button class="choice-btn" id="choice-H-${d.id}" style="background:#ffffff; color:#000;" onclick="setStartTyreCombo('${d.id}', 'H')">HARD</button>
+                    </div>
+                `;
+                tyreBox.appendChild(row);
+            });
+
+            const actionBtn = document.getElementById('modal-action-btn');
+            actionBtn.innerText = "CONFIRM & GO TO START GRID";
+            actionBtn.onclick = () => {
+                pDrivers.forEach(d => {
+                    d.tyreType = selectedStartTyres[d.id];
+                });
+                drivers.filter(d => !d.isPlayer).forEach(d => {
+                    d.tyreType = ['S','M','H'][Math.floor(Math.random() * 3)];
+                });
+                switchToRaceGrid();
+            };
+        }
+
+        function setStartTyreCombo(driverId, type) {
+            selectedStartTyres[driverId] = type;
+            ['S','M','H'].forEach(t => {
+                const btn = document.getElementById(`choice-${t}-${driverId}`);
+                if(t === type) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+
+        function switchToRaceGrid() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('start-tyre-box').style.display = 'none';
+            
+            initStrategyUI();
+            evaluateStandings(true); 
+            updateCarPositionsOnTrack(); 
+
+            document.getElementById('manual-start-btn').style.display = 'block';
+            document.getElementById('manual-start-btn').onclick = startLightsSequence;
+        }
+
+        function startLightsSequence() {
+            document.getElementById('manual-start-btn').style.display = 'none';
+            const container = document.getElementById('lights-container');
+            container.style.display = 'flex';
+            
+            for(let i=0; i<5; i++) {
+                document.getElementById(`l-${i}-0`).className = 'light-bulb';
+                document.getElementById(`l-${i}-1`).className = 'light-bulb';
+            }
+
+            let step = 0;
+            const seqInterval = setInterval(() => {
+                if (step < 5) {
+                    document.getElementById(`l-${step}-0`).className = 'light-bulb red';
+                    document.getElementById(`l-${step}-1`).className = 'light-bulb red';
+                    step++;
+                } else {
+                    clearInterval(seqInterval);
+                    setTimeout(() => {
+                        container.style.display = 'none';
+                        executeRaceStart();
+                    }, 500 + Math.random() * 1200);
+                }
+            }, 1000);
+        }
+
+        function executeRaceStart() {
+            document.getElementById('lap-counter').innerText = `LAP 1 / ${totalLaps}`;
+            raceStartTime = Date.now();
+            lastLeaderboardUpdateTime = raceStartTime; 
+            isLive = true;
+            addCommentary("레이스 스타트! 거대해진 원형 Speedway 서킷 주로에서 경쟁이 시작됩니다!");
+            loopInterval = setInterval(raceLoop, 50);
+        }
+
+        function initCircuitGraphics() {
+            const layer = document.getElementById('cars-layer');
+            layer.innerHTML = "";
+            drivers.forEach(d => {
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.id = `car-g-${d.id}`;
+                
+                const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                dot.setAttribute("r", "6.5");
+                dot.setAttribute("fill", d.color);
+                dot.setAttribute("stroke", d.isPlayer ? "#ff9900" : "#ffffff");
+                dot.setAttribute("stroke-width", d.isPlayer ? "2.2" : "1.0");
+                dot.setAttribute("class", "car-dot");
+                
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("class", "car-label");
+                if(d.color === "#ffffff") txt.style.fill = "#000";
+                txt.textContent = d.id;
+
+                const drsTxt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                drsTxt.id = `drs-txt-${d.id}`;
+                drsTxt.setAttribute("class", "drs-text");
+                drsTxt.setAttribute("y", "-11");
+                drsTxt.setAttribute("text-anchor", "middle");
+                drsTxt.textContent = "DRS";
+                
+                g.appendChild(dot);
+                g.appendChild(txt);
+                g.appendChild(drsTxt);
+                layer.appendChild(g);
+            });
+        }
+
+        function updateCarPositionsOnTrack() {
+            drivers.forEach(d => {
+                let currentProgressInLap = d.progress % 1.0;
+                if (d.progress < 0) currentProgressInLap = (1.0 + currentProgressInLap) % 1.0;
+                let actualLength = currentProgressInLap * mainTrackLen;
+                drawCarWithOffset(d, mainTrackPath, actualLength, 0);
+            });
+        }
+
+        function initStrategyUI() {
+            const container = document.getElementById('my-drivers-container');
+            container.innerHTML = "";
+            drivers.filter(d => d.isPlayer).forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'driver-card';
+                card.style.borderColor = d.color;
+                card.innerHTML = `
+                    <div style="font-weight:bold; font-size:14px; display:flex; justify-content:space-between;">
+                        <span>${d.name} <span class="badge ${d.tyreType}" id="badge-${d.id}">${d.tyreType}</span></span>
+                    </div>
+                    
+                    <div class="gauge-container"><span>TYRE WEAR</span><span id="wear-label-${d.id}">100%</span></div>
+                    <div class="gauge-bar"><div class="gauge-fill" id="wear-fill-${d.id}" style="background:#22c55e; width:100%;"></div></div>
+                    
+                    <div class="gauge-container"><span>ERS BATTERY</span><span id="battery-label-${d.id}">100%</span></div>
+                    <div class="gauge-bar"><div class="gauge-fill" id="battery-fill-${d.id}" style="background:#00d2ff; width:100%;"></div></div>
+
+                    <div class="btn-group">
+                        <button class="strat-btn active" id="btn-norm-${d.id}" onclick="changePace('${d.id}', 'Normal')">Balanced</button>
+                        <button class="strat-btn" id="btn-push-${d.id}" onclick="changePace('${d.id}', 'Push')">Push</button>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="tyre-btn" id="btn-tyre-a-${d.id}" onclick="changeTyreStyle('${d.id}', 'a')">A</button>
+                        <button class="tyre-btn active" id="btn-tyre-n-${d.id}" onclick="changeTyreStyle('${d.id}', 'n')">N</button>
+                        <button class="tyre-btn" id="btn-tyre-d-${d.id}" onclick="changeTyreStyle('${d.id}', 'd')">D</button>
+                    </div>
+
+                    <button class="pit-box-btn" id="btn-pit-${d.id}" onclick="togglePitReservation('${d.id}')">BOX THIS LAP</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function changePace(id, mode) {
+            let d = drivers.find(drv => drv.id === id);
+            d.paceMode = mode;
+            document.getElementById(`btn-norm-${id}`).className = mode === 'Normal' ? 'strat-btn active' : 'strat-btn';
+            document.getElementById(`btn-push-${id}`).className = mode === 'Push' ? 'strat-btn active' : 'strat-btn';
+        }
+
+        function changeTyreStyle(id, style) {
+            let d = drivers.find(drv => drv.id === id);
+            d.tyreStyle = style;
+            document.getElementById(`btn-tyre-a-${id}`).className = style === 'a' ? 'tyre-btn active' : 'tyre-btn';
+            document.getElementById(`btn-tyre-n-${id}`).className = style === 'n' ? 'tyre-btn active' : 'tyre-btn';
+            document.getElementById(`btn-tyre-d-${id}`).className = style === 'd' ? 'tyre-btn active' : 'tyre-btn';
+        }
+
+        function togglePitReservation(id) {
+            let d = drivers.find(drv => drv.id === id);
+            const btn = document.getElementById(`btn-pit-${id}`);
+            
+            if (!d.pitRequest) {
+                d.pitRequest = true;
+                btn.innerText = "CANCEL PIT BOX";
+                btn.className = "pit-box-btn requested";
+            } else {
+                d.pitRequest = false;
+                btn.innerText = "BOX THIS LAP";
+                btn.className = "pit-box-btn";
+            }
+        }
+
+        function checkTeamRadio() {
+            if (activeRadioDriver) return; 
+
+            let pDrivers = drivers.filter(d => d.isPlayer && d.tyreWear <= 50.0 && !d.radioTriggered && d.status === 'Track');
+            if (pDrivers.length > 0) {
+                activeRadioDriver = pDrivers[0];
+                activeRadioDriver.radioTriggered = true;
+                
+                document.getElementById('radio-msg-box').innerText = `[${activeRadioDriver.id}] 타이어 그립 감소. 이번 랩 피트인 여부를 결정하세요.`;
+                document.getElementById('radio-actions-box').style.display = "flex";
+            }
+        }
+
+        function handleRadio(approved) {
+            if (!activeRadioDriver) return;
+            
+            if (approved) {
+                if (!activeRadioDriver.pitRequest) {
+                    togglePitReservation(activeRadioDriver.id);
+                }
+                addCommentary(`[RADIO] ${activeRadioDriver.id} 박스 승인 확인.`);
+            } else {
+                addCommentary(`[RADIO] 현 셋업 유지 결정.`);
+            }
+            
+            document.getElementById('radio-msg-box').innerText = "No active messages";
+            document.getElementById('radio-actions-box').style.display = "none";
+            activeRadioDriver = null;
+        }
+
+        function raceLoop() {
+            if (!isLive) return;
+
+            const dt = 0.05 * gameSpeed;
+            let sortedByProg = [...drivers].sort((a,b) => b.progress - a.progress);
+
+            drivers.forEach(d => {
+                let currentProgressInLap = d.progress % 1.0;
+                if (d.progress < 0) currentProgressInLap = (1.0 + currentProgressInLap) % 1.0;
+
+                if (d.status === 'Pitting') {
+                    d.pitTimer -= dt;
+                    d.totalTime += dt;
+                    if (d.pitTimer <= 0) {
+                        d.status = 'Track'; 
+                        d.tyreWear = 100.0;
+                        d.radioTriggered = false; 
+                        addCommentary(`[PIT OUT] ${d.id} 피트작업 종료 후 합류.`);
+                    }
+                    drawCarWithOffset(d, pitTrackPath, pitTrackLen * 0.5, 0);
+                    return;
+                }
+
+                if (d.paceMode === 'Push') {
+                    if (d.battery > 0) {
+                        d.battery -= (6.5 * dt);
+                        if (d.battery < 0) d.battery = 0;
+                    }
+                } else {
+                    if (d.battery < 100) {
+                        d.battery += (0.5 * dt);
+                        if (d.battery > 100) d.battery = 100;
+                    }
+                }
+
+                if (!d.isPlayer) {
+                    if (d.battery >= 90 && Math.random() < 0.03) d.paceMode = 'Push';
+                    if (d.battery <= 3) d.paceMode = 'Normal';
+                }
+
+                let currentLapPaceTime = baseLapTime;
+                let skillBonus = (1.0 - d.skill) * 18.0; 
+                currentLapPaceTime += skillBonus;
+
+                let tyreBonus = tyreSpecs[d.tyreType].speedBonus;
+                let wearImpact = (d.tyreWear / 100.0);
+                currentLapPaceTime -= (tyreBonus * (0.1 + wearImpact * 0.9));
+
+                if (d.tyreWear < 45) {
+                    currentLapPaceTime += (45 - d.tyreWear) * 0.8;
+                }
+
+                if (d.paceMode === 'Push' && d.battery > 0) {
+                    currentLapPaceTime -= 1.0;
+                }
+
+                let myIdx = sortedByProg.indexOf(d);
+                if (myIdx > 0 && d.progress > 0) {
+                    let aheadDriver = sortedByProg[myIdx - 1];
+                    let distanceGap = aheadDriver.progress - d.progress; 
+                    let timeGap = distanceGap * baseLapTime;
+
+                    if (timeGap <= 1.2 && aheadDriver.status === 'Track') {
+                        d.hasSlipstream = true;
+                        currentLapPaceTime -= 1.5; 
+
+                        if (timeGap <= 0.8) {
+                            d.hasDrs = true;
+                            currentLapPaceTime -= 2.5; 
+                        }
+                    }
+                }
+
+                let txtElement = document.getElementById(`drs-txt-${d.id}`);
+                if (txtElement) {
+                    txtElement.style.display = d.hasDrs ? "block" : "none";
+                }
+
+                let chaosNoise = (Math.random() * 0.4) - 0.20;
+                currentLapPaceTime += chaosNoise;
+
+                let progressIncrement = dt / currentLapPaceTime;
+                let oldProgress = d.progress;
+                d.progress += progressIncrement;
+                d.totalTime += dt;
+
+                let wearSpeed = (tyreSpecs[d.tyreType].wearRate / baseLapTime) * dt * (d.paceMode === 'Push' ? 1.5 : 1.0);
+                if (d.tyreStyle === 'a') wearSpeed += 0.1 * dt;
+                
+                if (d.progress > 0) d.tyreWear -= wearSpeed;
+                if (d.tyreWear < 0) d.tyreWear = 0;
+
+                if (d.isPlayer) {
+                    document.getElementById(`wear-label-${d.id}`).innerText = `${Math.floor(d.tyreWear)}%`;
+                    document.getElementById(`wear-fill-${d.id}`).style.width = `${d.tyreWear}%`;
+                    document.getElementById(`battery-label-${d.id}`).innerText = `${Math.floor(d.battery)}%`;
+                    const batBar = document.getElementById(`battery-fill-${d.id}`);
+                    batBar.style.width = `${d.battery}%`;
+                    if(d.battery < 20) batBar.style.backgroundColor = '#ef4444';
+                    else if(d.battery < 60) batBar.style.backgroundColor = '#eab308';
+                    else batBar.style.backgroundColor = '#00d2ff';
+                }
+
+                if (Math.floor(d.progress) > Math.floor(oldProgress)) {
+                    if (d.isPlayer && Math.floor(d.progress) > currentLap) {
+                        currentLap = Math.floor(d.progress);
+                        if (currentLap <= totalLaps) {
+                            document.getElementById('lap-counter').innerText = `LAP ${currentLap} / ${totalLaps}`;
+                        } else {
+                            document.getElementById('lap-counter').innerText = `FINISH`;
+                            isLive = false;
+                            showFinalPodium();
+                            return;
+                        }
+                    }
+                    if (!d.isPlayer && d.tyreWear < 28) d.pitRequest = true;
+                }
+
+                if (d.pitRequest && currentProgressInLap >= 0.88 && currentProgressInLap <= 0.94) {
+                    d.pitRequest = false;
+                    if (d.isPlayer) {
+                        isLive = false; 
+                        activePittingDriver = d;
+                        openTyreSelectionPopup();
+                    } else {
+                        let randTyre = ['S','M','H'][Math.floor(Math.random()*3)];
+                        executeAiPitStop(d, randTyre);
+                    }
+                    return;
+                }
+
+                let actualLength = (d.progress >= 0 ? currentProgressInLap : (1.0 + currentProgressInLap) % 1.0) * mainTrackLen;
+                drawCarWithOffset(d, mainTrackPath, actualLength, 0);
+            });
+
+            checkTeamRadio();
+            evaluateStandings(false);
+        }
+
+        function openTyreSelectionPopup() {
+            document.getElementById('tyre-select-overlay').style.display = 'flex';
+        }
+
+        function selectTyre(type) {
+            document.getElementById('tyre-select-overlay').style.display = 'none';
+            let d = activePittingDriver;
+            
+            d.tyreType = type;
+            d.status = 'Pitting';
+            d.pitTimer = 10.0; 
+
+            const badge = document.getElementById(`badge-${d.id}`);
+            badge.innerText = type;
+            badge.className = `badge ${type}`;
+
+            const btn = document.getElementById(`btn-pit-${d.id}`);
+            btn.innerText = "BOX THIS LAP";
+            btn.className = "pit-box-btn";
+
+            addCommentary(`[PIT STOP] ${d.id} 피트인 수행 완료.`);
+            isLive = true; 
+        }
+
+        function executeAiPitStop(driver, type) {
+            driver.tyreType = type;
+            driver.status = 'Pitting';
+            driver.pitTimer = 10.0; 
+            addCommentary(`[PIT STOP] AI ${driver.id} 피트스톱 진행.`);
+        }
+
+        function drawCarWithOffset(driver, pathNode, distance, sideOffset) {
+            let pt = pathNode.getPointAtLength(distance);
+            
+            let step = 0.5;
+            let pt2 = pathNode.getPointAtLength(Math.min(distance + step, mainTrackLen));
+            let dx = pt2.x - pt.x;
+            let dy = pt2.y - pt.y;
+            let len = Math.sqrt(dx*dx + dy*dy);
+            
+            let nx = 0, ny = 0;
+            if(len > 0) {
+                nx = -dy / len;
+                ny = dx / len;
+            }
+            
+            let finalX = pt.x + nx * sideOffset;
+            let finalY = pt.y + ny * sideOffset;
+
+            const g = document.getElementById(`car-g-${driver.id}`);
+            if(g) g.setAttribute("transform", `translate(${finalX}, ${finalY})`);
+        }
+
+        // ⏱️ 타임테이블 출력 시간 간격을 1초(1000ms)로 정밀 변환한 핵심 로직
+        function evaluateStandings(forceUpdate = false) {
+            let currentTime = Date.now();
+            let sortedCurrent = [...drivers].sort((a, b) => b.progress - a.progress);
+            
+            let isInitialLocked = (raceStartTime === 0 || (currentTime - raceStartTime < 1000));
+
+            // 🛠️ 시간 표시 간격을 1초(1000ms)로 수정
+            if (forceUpdate || (currentTime - lastLeaderboardUpdateTime >= 1000)) {
+                lastLeaderboardUpdateTime = currentTime;
+                visualPositions = sortedCurrent.map(d => d.id);
+
+                const tbody = document.getElementById('leaderboard-body');
+                tbody.innerHTML = "";
+
+                visualPositions.forEach((id, idx) => {
+                    let d = drivers.find(drv => drv.id === id);
+                    let intervalText = "";
+                    
+                    if (isInitialLocked) {
+                        intervalText = idx === 0 ? "LEADER" : "--";
+                    } else {
+                        if (idx === 0) {
+                            intervalText = "LEADER";
+                        } else {
+                            let leaderProgress = drivers.find(drv => drv.id === visualPositions[0]).progress;
+                            let progressGap = leaderProgress - d.progress;
+                            let gapTime = progressGap * baseLapTime; 
+                            intervalText = `+${gapTime.toFixed(3)}s`;
+                        }
+                    }
+
+                    const row = document.createElement('tr');
+                    if (d.isPlayer) row.style.background = "rgba(225, 6, 0, 0.12)";
+
+                    row.innerHTML = `
+                        <td class="pos">${idx + 1}</td>
+                        <td class="team-badge" style="background-color: ${d.color};"></td>
+                        <td style="font-weight: bold;">${d.name} <span class="badge ${d.tyreType}">${d.tyreType}</span></td>
+                        <td class="interval">${d.status === 'Pitting' ? 'PITTING' : intervalText}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        function addCommentary(text) {
+            const box = document.getElementById('commentary-section');
+            let timeStamp = new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            box.innerHTML = `[${timeStamp}] ${text}<br>` + box.innerHTML;
+        }
+
+        function showFinalPodium() {
+            let sorted = [...drivers].sort((a, b) => b.progress - a.progress);
+            document.getElementById('modal-overlay').style.display = 'flex';
+            document.getElementById('modal-title').innerText = "RACE FINISHED";
+            document.getElementById('modal-desc').innerText = "Final Classification";
+            
+            const box = document.getElementById('results-box');
+            box.style.display = 'block';
+            box.innerHTML = "";
+            
+            sorted.forEach((drv, idx) => {
+                box.innerHTML += `<b>P${idx+1}</b> [${drv.team}] ${drv.name} (${drv.id})<br>`;
+            });
+
+            const actionBtn = document.getElementById('modal-action-btn');
+            actionBtn.style.display = 'block';
+            actionBtn.innerText = "RETURN TO MAIN MENU";
+            actionBtn.onclick = () => initGame(); 
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
